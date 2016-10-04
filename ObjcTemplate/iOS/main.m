@@ -1,6 +1,5 @@
 //
 //  main.m
-//  ObjcTemplate
 //
 
 #import <UIKit/UIKit.h>

@@ -1,6 +1,5 @@
 //
 //  AppDelegate.m
-//  ObjcTemplate
 //
 
 #import "AppDelegate.h"

@@ -1,6 +1,5 @@
 //
 //  AppDelegate.h
-//  ObjcTemplate
 //
 
 #import <UIKit/UIKit.h>

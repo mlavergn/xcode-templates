@@ -1,6 +1,5 @@
 //
 //  ViewController.m
-//  ObjcTemplate
 //
 
 #import "ViewController.h"
