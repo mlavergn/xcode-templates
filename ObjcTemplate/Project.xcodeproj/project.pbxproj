@@ -20,7 +20,7 @@
 			containerPortal = 6C790E501B8D988C00A1726D /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 6C790E571B8D988C00A1726D;
-			remoteInfo = ObjTemplate;
+			remoteInfo = iOS;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -169,7 +169,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 6C790E531B8D988C00A1726D /* Build configuration list for PBXProject "iOS" */;
+			buildConfigurationList = 6C790E531B8D988C00A1726D /* Build configuration list for PBXProject "Project" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -332,6 +332,7 @@
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = iOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.demoapp.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -343,6 +344,7 @@
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = iOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.demoapp.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -388,7 +390,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6C790E531B8D988C00A1726D /* Build configuration list for PBXProject "iOS" */ = {
+		6C790E531B8D988C00A1726D /* Build configuration list for PBXProject "Project" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				6C790E791B8D988C00A1726D /* Debug */,
