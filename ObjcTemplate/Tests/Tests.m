@@ -1,16 +1,16 @@
 //
-//  ObjcTemplateTests.m
-//  ObjcTemplateTests
+//  Tests.m
+//  Tests
 //
 
 #import <UIKit/UIKit.h>
 #import <XCTest/XCTest.h>
 
-@interface ObjcTemplateTests : XCTestCase
+@interface Tests : XCTestCase
 
 @end
 
-@implementation ObjcTemplateTests
+@implementation Tests
 
 - (void)setUp {
     [super setUp];
