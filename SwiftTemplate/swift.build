@@ -1,0 +1,83 @@
+#!/usr/bin/swift
+
+//
+// This is a temporary fix for the fact that swift build defaults the the current platform
+// and doesn't allow an override via parameters (yet). We generate the build yaml files
+// then regex them to work with our intended target.
+// * Now available as a Swift script!
+//
+
+import Foundation
+
+let TARGET_IOS = "armv7-apple-ios10.0"
+let TARGET_SIM = "x86_64-apple-ios10.0"
+let TARGET_MAC = "x86_64-apple-macosx10.10"
+
+let SDK_IOS = "iPhoneOS"
+let SDK_SIM = "iPhoneSimulator"
+let SDK_MAC = "MacOSX"
+
+func setup(config:String) {
+  let task = Process()
+  task.launchPath = "/usr/bin/swift"
+  task.arguments = ["build", "--configuration", config]
+  task.launch()
+  task.waitUntilExit()
+}
+
+func clean() {
+  let task = Process()
+  task.launchPath = "/usr/bin/swift"
+  task.arguments = ["clean"]
+  task.launch()
+  task.waitUntilExit()
+}
+
+func build(config:String) {
+  let task = Process()
+  task.launchPath = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build-tool"
+  task.arguments = ["-C", ".build", "-f", config + ".yaml"]
+  task.launch()
+  task.waitUntilExit()
+}
+
+func read(config:String) -> String {
+  let filePath = FileManager.default.currentDirectoryPath
+  var path = Foundation.URL(string:"file://" + filePath)
+  path = path!.appendingPathComponent(".build/" + config + ".yaml")
+
+  let result = try! String(contentsOf:path!, encoding:String.Encoding.utf8)
+
+  return result
+}
+
+func replace(contents:String, pattern:String, withTemplate:String) -> String {
+    let regex = try! NSRegularExpression(pattern:pattern, options:[])
+    return regex.stringByReplacingMatches(in:contents, options:[], range:NSRange(0..<contents.utf8.count), withTemplate:withTemplate)
+}
+
+func write(config:String, contents:String) {
+  let filePath = FileManager.default.currentDirectoryPath
+  var path = Foundation.URL(string:"file://" + filePath)
+  path = path!.appendingPathComponent(".build/" + config + ".yaml")
+
+  try! contents.write(to:path!, atomically:false, encoding:String.Encoding.utf8)
+}
+
+func reconfig(config:String, oldSDK:String, newSDK:String, oldTarget:String, newTarget:String) {
+  var contents = read(config:config)
+
+  contents = replace(contents:contents, pattern:oldSDK + ".platform", withTemplate:newSDK + ".platform")
+  contents = replace(contents:contents, pattern:oldSDK + "[0-9.]*.sdk", withTemplate:newSDK + ".sdk")
+  contents = replace(contents:contents, pattern:oldTarget, withTemplate:newTarget)
+
+  write(config:config, contents:contents)
+}
+
+setup(config:"debug")
+setup(config:"release")
+
+reconfig(config:"debug", oldSDK:SDK_MAC, newSDK:SDK_SIM, oldTarget:TARGET_MAC, newTarget:TARGET_SIM)
+reconfig(config:"release", oldSDK:SDK_MAC, newSDK:SDK_SIM, oldTarget:TARGET_MAC, newTarget:TARGET_SIM)
+
+build(config:"debug")
