@@ -3,128 +3,166 @@
 //
 // This is a temporary fix for the fact that swift build defaults the the current platform
 // and doesn't allow an override via parameters (yet). We generate the build yaml files
-// then regex them to work with our intended target.
-// * Now available as a Swift script!
+// then regex modify them to work with our intended target.
 //
 
 import Foundation
 
-enum Config:String {
-    case Unkown = "unkown"
-    case iOS = "ios"
-    case Sim = "sim"
-    case Mac = "mac"
-}
+class SwiftBuild {
+  //
+  // Configuration settings used by the build yamls
+  //
+  let settings = [
+      "ios": ["sdk":"iPhoneOS", "target":"armv7-apple-ios10.0"],
+      "sim": ["sdk":"iPhoneSimulator", "target":"x86_64-apple-ios10.0"],
+      "mac": ["sdk":"MacOSX", "target":"x86_64-apple-macosx10.10"],
+    ]
 
-enum Target:String {
-    case iOS = "armv7-apple-ios10.0"
-    case Sim = "x86_64-apple-ios10.0"
-    case Mac = "x86_64-apple-macosx10.10"
-}
+  //
+  // URL of the current working directory
+  //
+  func currentWorkingDirectoryURL() -> URL {
+    let filePath = FileManager.default.currentDirectoryPath
+    let result = Foundation.URL(string:"file://\(filePath)")
 
-enum SDK:String {
-    case iOS = "iPhoneOS"
-    case Sim = "iPhoneSimulator"
-    case Mac = "MacOSX"
-}
-
-func exists(config:String) -> Bool {
-  let filePath = FileManager.default.currentDirectoryPath
-  var path = Foundation.URL(string:"file://\(filePath)")
-  path = path!.appendingPathComponent(".build/\(config).yaml")
-
-  return FileManager.default.fileExists(atPath:path!.path)
-}
-
-func setup(config:String) {
-  let task = Process()
-  task.launchPath = "/usr/bin/swift"
-  task.arguments = ["build", "--configuration", config]
-  task.launch()
-  task.waitUntilExit()
-}
-
-func clean() {
-  let filePath = FileManager.default.currentDirectoryPath
-  var path = Foundation.URL(string:"file://\(filePath)")
-  path = path!.appendingPathComponent("/.build")
-  try! FileManager.default.removeItem(at:path!)
-}
-
-func detect(config:String) -> String {
-  var result:String
-  let contents = read(config:config)
-  if contents.range(of:SDK.iOS.rawValue) != nil {
-    result = Config.iOS.rawValue
-  } else if contents.range(of:SDK.Sim.rawValue) != nil {
-    result = Config.Sim.rawValue
-  } else if contents.range(of:SDK.Mac.rawValue) != nil {
-    result = Config.Mac.rawValue
-  } else {
-    result = Config.Unkown.rawValue
+    return result!
   }
 
-  return result
+  //
+  // Determines if the configuration yaml exists
+  //
+  func exists(config:String) -> Bool {
+    let path = currentWorkingDirectoryURL().appendingPathComponent(".build/\(config).yaml")
+
+    return FileManager.default.fileExists(atPath:path.path)
+  }
+
+  //
+  // Read in the configuration yaml
+  //
+  func read(config:String) -> String {
+    let path = currentWorkingDirectoryURL().appendingPathComponent(".build/\(config).yaml")
+    let result = try! String(contentsOf:path, encoding:String.Encoding.utf8)
+
+    return result
+  }
+
+  //
+  // Write out the configuration yaml
+  //
+  func write(config:String, contents:String) {
+    let path = currentWorkingDirectoryURL().appendingPathComponent(".build/\(config).yaml")
+    try! contents.write(to:path, atomically:false, encoding:String.Encoding.utf8)
+  }
+
+  //
+  // Blows away the .build directory
+  //
+  func setup(config:String) {
+    let task = Process()
+    task.launchPath = "/usr/bin/swift"
+    task.arguments = ["build", "--configuration", config]
+    // silence errors which are irrelevant since we just need the yamls as templates
+    task.standardOutput = nil
+    task.standardError = nil
+    task.launch()
+    task.waitUntilExit()
+  }
+
+  //
+  // Blows away the .build directory
+  //
+  func clean() {
+    let path = currentWorkingDirectoryURL().appendingPathComponent("/.build")
+    try! FileManager.default.removeItem(at:path)
+  }
+
+  //
+  // Detects the sdk/target in the specified configuration yaml
+  //
+  func detect(config:String) -> String {
+    var result:String?
+    let contents = read(config:config)
+
+    for entry in settings {
+      if contents.range(of:entry.value["sdk"]!) != nil {
+        result = entry.key
+        break
+      }
+    }
+
+    return result!
+  }
+
+  //
+  // Wraps the regex logic for reuse
+  //
+  func replace(contents:String, pattern:String, withTemplate:String) -> String {
+      let regex = try! NSRegularExpression(pattern:pattern, options:[])
+      return regex.stringByReplacingMatches(in:contents, options:[], range:NSRange(0..<contents.utf8.count), withTemplate:withTemplate)
+  }
+
+  //
+  // Workhorse routine that edits the yaml contents
+  //
+  func reconfig(config:String, oldTarget:[String:String], newTarget:[String:String]) {
+    var contents = read(config:config)
+
+    let oldSDK = oldTarget["sdk"]!
+    let newSDK = newTarget["sdk"]!
+
+    let oldPlatform = oldTarget["target"]!
+    let newPlatform = newTarget["target"]!
+
+    contents = replace(contents:contents, pattern:"\(oldSDK).platform", withTemplate:"\(newSDK).platform")
+    contents = replace(contents:contents, pattern:"\(oldSDK)[0-9.]*.sdk", withTemplate:"\(newSDK).sdk")
+    contents = replace(contents:contents, pattern:oldPlatform, withTemplate:newPlatform)
+
+    write(config:config, contents:contents)
+  }
+
+  //
+  // Call the exec underlying "swift build" so we can specify which configuration yaml to use
+  //
+  func build(target:String, config:String) {
+    print("Building for \(target) ...")
+    let task = Process()
+    task.launchPath = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build-tool"
+    task.arguments = ["-C", ".build", "-f", "\(config).yaml"]
+    task.launch()
+    task.waitUntilExit()
+  }
 }
 
-func read(config:String) -> String {
-  let filePath = FileManager.default.currentDirectoryPath
-  var path = Foundation.URL(string:"file://\(filePath)")
-  path = path!.appendingPathComponent(".build/\(config).yaml")
+//
+// Main logic where we interpret the arguments and detemine the intent
+//
 
-  let result = try! String(contentsOf:path!, encoding:String.Encoding.utf8)
+var arg1valid = ["ios", "sim", "mac"]
+var arg2valid = ["debug", "release", "clean"]
 
-  return result
-}
-
-func replace(contents:String, pattern:String, withTemplate:String) -> String {
-    let regex = try! NSRegularExpression(pattern:pattern, options:[])
-    return regex.stringByReplacingMatches(in:contents, options:[], range:NSRange(0..<contents.utf8.count), withTemplate:withTemplate)
-}
-
-func reconfig(config:String, oldSDK:String, newSDK:String, oldTarget:String, newTarget:String) {
-  var contents = read(config:config)
-
-  contents = replace(contents:contents, pattern:"\(oldSDK).platform", withTemplate:"\(newSDK).platform")
-  contents = replace(contents:contents, pattern:"\(oldSDK)[0-9.]*.sdk", withTemplate:"\(newSDK).sdk")
-  contents = replace(contents:contents, pattern:oldTarget, withTemplate:newTarget)
-
-  write(config:config, contents:contents)
-}
-
-func write(config:String, contents:String) {
-  let filePath = FileManager.default.currentDirectoryPath
-  var path = Foundation.URL(string:"file://\(filePath)")
-  path = path!.appendingPathComponent(".build/\(config).yaml")
-
-  try! contents.write(to:path!, atomically:false, encoding:String.Encoding.utf8)
-}
-
-func build(config:String) {
-  let task = Process()
-  task.launchPath = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build-tool"
-  task.arguments = ["-C", ".build", "-f", "\(config).yaml"]
-  task.launch()
-  task.waitUntilExit()
-}
-
+let sb = SwiftBuild()
 
 let arguments = CommandLine.arguments
 if arguments.count < 3 {
   print("Requires parameters [ ios / sim / mac ] and [debug / release / clean]")
 } else {
-  if arguments[2] == "clean" {
-    clean()
+  if !arg1valid.contains(arguments[1]) || !arg2valid.contains(arguments[2]) {
+    print("Invalild argument")
   } else {
-    if !exists(config:arguments[2]) {
-      setup(config:arguments[2])
-    }
+    if arguments[2] == "clean" {
+      sb.clean()
+    } else {
+      sb.setup(config:arguments[2])
 
-    if detect(config:arguments[2]) != arguments[1] {
-      reconfig(config:arguments[2], oldSDK:SDK.Mac.rawValue, newSDK:SDK.Sim.rawValue, oldTarget:Target.Mac.rawValue, newTarget:Target.Sim.rawValue)
-    }
+      let oldTarget = sb.detect(config:arguments[2])
+      let newTarget = arguments[1]
+      if oldTarget != newTarget {
+        sb.reconfig(config:arguments[2], oldTarget:sb.settings[oldTarget]!, newTarget:sb.settings[newTarget]!)
+      }
 
-    build(config:arguments[2])
+      sb.build(target:arguments[1], config:arguments[2])
+    }
   }
 }
 
