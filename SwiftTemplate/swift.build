@@ -99,7 +99,7 @@ class SwiftBuild {
   //
   func replace(contents:String, pattern:String, withTemplate:String) -> String {
       let regex = try! NSRegularExpression(pattern:pattern, options:[])
-      return regex.stringByReplacingMatches(in:contents, options:[], range:NSRange(0..<contents.utf8.count), withTemplate:withTemplate)
+      return regex.stringByReplacingMatches(in:contents, options:[], range:NSRange(0..<contents.characters.count), withTemplate:withTemplate)
   }
 
   //
