@@ -19,6 +19,32 @@ class SwiftBuild {
     ]
 
   //
+  // Execute xcode-select to determine install path
+  //
+  func xcodePath() -> String {
+    var result:String?
+    let pipe = Pipe()
+
+    let outHandle = pipe.fileHandleForReading
+    outHandle.readabilityHandler = { (pipe:FileHandle) in
+      var line = String(data:pipe.availableData, encoding:String.Encoding.utf8)
+      if line!.characters.count > 0 {
+        line = line!.trimmingCharacters(in:NSCharacterSet.whitespacesAndNewlines)
+        result = line
+      }
+    }
+
+    let task = Process()
+    task.launchPath = "/usr/bin/xcode-select"
+    task.arguments = ["-p"]
+    task.standardOutput = pipe
+    task.launch()
+    task.waitUntilExit()
+
+    return result!
+  }
+
+  //
   // URL of the current working directory
   //
   func currentWorkingDirectoryURL() -> URL {
@@ -127,7 +153,9 @@ class SwiftBuild {
   func build(target:String, config:String) {
     print("Building for \(target) ...")
     let task = Process()
-    task.launchPath = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build-tool"
+    let xcodePath = self.xcodePath()
+
+    task.launchPath = "\(xcodePath)/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build-tool"
     task.arguments = ["-C", ".build", "-f", "\(config).yaml"]
     task.launch()
     task.waitUntilExit()
