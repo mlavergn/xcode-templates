@@ -57,18 +57,21 @@ class SwiftBuild {
   //
   // Determines if the configuration yaml exists
   //
-  func exists(config:String) -> Bool {
+  func exists(config:String) -> (valid:Bool, url:URL) {
     let path = currentWorkingDirectoryURL().appendingPathComponent(".build/\(config).yaml")
 
-    return FileManager.default.fileExists(atPath:path.path)
+    return (FileManager.default.fileExists(atPath:path.path), path)
   }
 
   //
   // Read in the configuration yaml
   //
   func read(config:String) -> String {
-    let path = currentWorkingDirectoryURL().appendingPathComponent(".build/\(config).yaml")
-    let result = try! String(contentsOf:path, encoding:String.Encoding.utf8)
+    let path = exists(config:config)
+    var result = ""
+    if path.valid {
+      result = try! String(contentsOf:path.url, encoding:String.Encoding.utf8)
+    }
 
     return result
   }
@@ -77,22 +80,32 @@ class SwiftBuild {
   // Write out the configuration yaml
   //
   func write(config:String, contents:String) {
-    let path = currentWorkingDirectoryURL().appendingPathComponent(".build/\(config).yaml")
-    try! contents.write(to:path, atomically:false, encoding:String.Encoding.utf8)
+    let path = exists(config:config)
+    if path.valid {
+      try! contents.write(to:path.url, atomically:false, encoding:String.Encoding.utf8)
+    }
   }
 
   //
   // Blows away the .build directory
   //
-  func setup(config:String) {
+  func setup(config:String, showErrors:Bool) -> Int32 {
     let task = Process()
     task.launchPath = "/usr/bin/swift"
     task.arguments = ["build", "--configuration", config]
-    // silence errors which are irrelevant since we just need the yamls as templates
+    // silence errors which are irrelevant since we just need the yaml as a template
+    if !showErrors {
     task.standardOutput = nil
     task.standardError = nil
+    }
     task.launch()
     task.waitUntilExit()
+    let result = task.terminationStatus
+    if result != 0 && !showErrors{
+      _ = setup(config:config, showErrors:true)
+    }
+
+    return result
   }
 
   //
@@ -100,7 +113,7 @@ class SwiftBuild {
   //
   func clean() {
     let path = currentWorkingDirectoryURL().appendingPathComponent("/.build")
-    try! FileManager.default.removeItem(at:path)
+    try? FileManager.default.removeItem(at:path)
   }
 
   //
@@ -109,11 +122,12 @@ class SwiftBuild {
   func detect(config:String) -> String {
     var result:String?
     let contents = read(config:config)
-
-    for entry in settings {
-      if contents.range(of:entry.value["sdk"]!) != nil {
-        result = entry.key
-        break
+    if contents.characters.count > 0 {
+      for entry in settings {
+        if contents.range(of:entry.value["sdk"]!) != nil {
+          result = entry.key
+          break
+        }
       }
     }
 
@@ -181,15 +195,16 @@ if arguments.count < 3 {
     if arguments[2] == "clean" {
       sb.clean()
     } else {
-      sb.setup(config:arguments[2])
+      let errcode = sb.setup(config:arguments[2], showErrors:false)
+        if errcode == 0 {
+        let oldTarget = sb.detect(config:arguments[2])
+        let newTarget = arguments[1]
+        if oldTarget != newTarget {
+          sb.reconfig(config:arguments[2], oldTarget:sb.settings[oldTarget]!, newTarget:sb.settings[newTarget]!)
+        }
 
-      let oldTarget = sb.detect(config:arguments[2])
-      let newTarget = arguments[1]
-      if oldTarget != newTarget {
-        sb.reconfig(config:arguments[2], oldTarget:sb.settings[oldTarget]!, newTarget:sb.settings[newTarget]!)
+        sb.build(target:arguments[1], config:arguments[2])
       }
-
-      sb.build(target:arguments[1], config:arguments[2])
     }
   }
 }
