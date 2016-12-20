@@ -1,7 +1,7 @@
 #!/usr/bin/swift
 
 //
-// This is a temporary fix for the fact that swift build defaults the the current platform
+// This is a temporary fix for the fact that swift build defaults to the current platform
 // and doesn't allow an override via parameters (yet). We generate the build yaml files
 // then regex modify them to work with our intended target.
 //
