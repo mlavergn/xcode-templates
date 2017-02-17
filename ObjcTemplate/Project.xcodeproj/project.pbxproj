@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		6C790E781B8D988C00A1726D /* Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6C790E771B8D988C00A1726D /* Tests.m */; };
 		6CDDAF4A1DA4536B003D23A1 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6CDDAF481DA4536B003D23A1 /* Images.xcassets */; };
-		6CDDAF4B1DA4536B003D23A1 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6CDDAF491DA4536B003D23A1 /* Info.plist */; };
 		6CDDAF511DA4537C003D23A1 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CDDAF4D1DA4537C003D23A1 /* AppDelegate.m */; };
 		6CDDAF521DA4537C003D23A1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CDDAF4E1DA4537C003D23A1 /* main.m */; };
 		6CDDAF531DA4537C003D23A1 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6CDDAF501DA4537C003D23A1 /* ViewController.m */; };
@@ -203,7 +202,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				6CDDAF4A1DA4536B003D23A1 /* Images.xcassets in Resources */,
-				6CDDAF4B1DA4536B003D23A1 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
