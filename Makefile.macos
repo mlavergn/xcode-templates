@@ -1,0 +1,16 @@
+###############################################
+#
+# Makefile
+#
+###############################################
+
+PROJECT ?= Demo
+
+.DEFAULT_GOAL := mod
+
+mod:
+	-plutil -remove NSMainStoryboardFile ${PROJECT}/Info.plist
+	-rm ${PROJECT}/Base.lproj/Main.storyboard
+	-echo "import Cocoa\n\nlet delegate = AppDelegate()\nNSApplication.shared.delegate = delegate\n_ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)" > ${PROJECT}/main.swift
+	-sed -i '' 's/@NSApplicationMain//' ${PROJECT}/AppDelegate.swift
+	open ${PROJECT}.xcodeproj
